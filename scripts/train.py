@@ -1,9 +1,12 @@
 import os
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import datetime
 import click
 import numpy as np
 import tqdm
-
+import sys
+sys.path.insert(0,'/var/scratch/wwang/deblur/keras/deblur-gan')
 from deblurgan.utils import load_images, write_log
 from deblurgan.losses import wasserstein_loss, perceptual_loss
 from deblurgan.model import generator_model, discriminator_model, generator_containing_discriminator_multiple_outputs
@@ -13,6 +16,7 @@ from keras.optimizers import Adam
 
 BASE_DIR = 'weights/'
 
+#####################
 
 def save_all_weights(d, g, epoch_number, current_loss):
     now = datetime.datetime.now()

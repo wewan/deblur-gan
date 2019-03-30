@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0,'/var/scratch/wwang/deblur/keras/deblur-gan')
+
 import numpy as np
 from PIL import Image
 import click
