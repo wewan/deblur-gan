@@ -46,10 +46,16 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
     d_on_g.compile(optimizer=d_on_g_opt, loss=loss, loss_weights=loss_weights)
     d.trainable = True
 
-    output_true_batch, output_false_batch = np.ones((batch_size, 1)), -np.ones((batch_size, 1))
 
     log_path = './logs'
     tensorboard_callback = TensorBoard(log_path)
+
+    hn_num = int(batch_size*0.5)
+    hp_num = int(batch_size*0.5)
+
+    output_true_batch, output_false_batch = np.ones((batch_size, 1)), -np.ones((batch_size, 1))
+    hard_true_batch, hard_false_batch = np.ones((batch_size+hp_num, 1)), -np.ones((batch_size+hn_num, 1))
+
 
     for epoch in tqdm.tqdm(range(epoch_num)):
         permutated_indexes = np.random.permutation(x_train.shape[0])
@@ -63,12 +69,65 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
 
             generated_images = g.predict(x=image_blur_batch, batch_size=batch_size)
 
+
+            ##############
+            # d.trainable = False
+            # temp_hn = []
+            # for i in range(generated_images.shape[0]):
+            #     t_s = d.predict(generated_images[i])
+            #     temp_hn.append(t_s)
+            # hn_ind = np.argsort(temp_hn)[::-1][:hn_num]
+            #
+            # hard_neg  = generated_images[hn_ind]
+            # hard_neg_y= image_full_batch[hn_ind]
+            # hard_pos = []
+            # hard_pos = []
+            #
+            # neg_train= np.concatenate((generated_images,hard_neg),axis=0)
+            # pos_train= np.concatenate((image_full_batch,hard_neg_y),axis=0)
+
             for _ in range(critic_updates):
-                d_loss_real = d.train_on_batch(image_full_batch, output_true_batch)
-                d_loss_fake = d.train_on_batch(generated_images, output_false_batch)
+                d.trainable = False
+                temp_hn = []
+                for i in range(generated_images.shape[0]):
+                    t_s = d.predict(generated_images[i][np.newaxis,...])[0][0]
+                    temp_hn.append(t_s)
+                hn_ind = np.argsort(temp_hn)[::-1][:hn_num]
+
+                hard_neg = generated_images[hn_ind]
+                hard_neg_y = image_full_batch[hn_ind]
+                hard_pos = []
+                hard_pos = []
+                d.trainable = True
+                neg_train = np.concatenate((generated_images, hard_neg), axis=0)
+                pos_train = np.concatenate((image_full_batch, hard_neg_y), axis=0)
+                d_loss_real = d.train_on_batch(pos_train, hard_true_batch)
+                d_loss_fake = d.train_on_batch(neg_train, hard_false_batch)
                 d_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
                 d_losses.append(d_loss)
 
+            # for _ in range(critic_updates):
+            #     d_loss_real = d.train_on_batch(image_full_batch, output_true_batch)
+            #     d_loss_fake = d.train_on_batch(generated_images, output_false_batch)
+            #     d_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
+            #     d_losses.append(d_loss)
+
+            # #################################
+            # d.trainable = False
+            # for i in range(generated_images.shape[0]):
+            #     t_s = d.predict(generated_images[i][np.newaxis, ...])[0][0]
+            #     temp_hn.append(t_s)
+            # hn_ind = np.argsort(temp_hn)[:hn_num]
+            #
+            # hard_g_x = image_blur_batch[hn_ind]
+            # hard_g_y = image_full_batch[hn_ind]
+            # g_blur = np.concatenate((image_blur_batch, hard_g_x), axis=0)
+            # g_full = np.concatenate((image_full_batch, hard_g_y), axis=0)
+            # d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
+            # d_on_g_losses.append(d_on_g_loss)
+            #
+            # d.trainable = True
+                ##############################
             d.trainable = False
 
             d_on_g_loss = d_on_g.train_on_batch(image_blur_batch, [image_full_batch, output_true_batch])
@@ -87,7 +146,7 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
 @click.command()
 # @click.option('--n_images', default=-1, help='Number of images to load for training')
 @click.option('--n_images', default=10, help='Number of images to load for training')
-@click.option('--batch_size', default=2, help='Size of batch')
+@click.option('--batch_size', default=4, help='Size of batch')
 # @click.option('--log_dir', required=True, help='Path to the log_dir for Tensorboard')
 @click.option('--log_dir', default='./log', help='Path to the log_dir for Tensorboard')
 @click.option('--epoch_num', default=4, help='Number of epochs for training')

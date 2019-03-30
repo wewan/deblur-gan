@@ -6,8 +6,8 @@ import tqdm
 
 
 @click.command()
-@click.option('--dir_in', default='GOPRO_Large')
-@click.option('--dir_out')
+@click.option('--dir_in', default='../GOPRO_Large')
+@click.option('--dir_out',default='../images')
 def reorganize_gopro_files(dir_in, dir_out):
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
