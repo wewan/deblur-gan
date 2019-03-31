@@ -14,7 +14,7 @@ from deblurgan.model import generator_model, discriminator_model, generator_cont
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
 
-BASE_DIR = 'weights/'
+BASE_DIR = 'weights_hard/'
 
 #####################
 
@@ -113,25 +113,28 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
             #     d_losses.append(d_loss)
 
             # #################################
-            # d.trainable = False
-            # for i in range(generated_images.shape[0]):
-            #     t_s = d.predict(generated_images[i][np.newaxis, ...])[0][0]
-            #     temp_hn.append(t_s)
-            # hn_ind = np.argsort(temp_hn)[:hn_num]
-            #
-            # hard_g_x = image_blur_batch[hn_ind]
-            # hard_g_y = image_full_batch[hn_ind]
-            # g_blur = np.concatenate((image_blur_batch, hard_g_x), axis=0)
-            # g_full = np.concatenate((image_full_batch, hard_g_y), axis=0)
-            # d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
-            # d_on_g_losses.append(d_on_g_loss)
+            d.trainable = False
+            temp_g = []
+            for i in range(generated_images.shape[0]):
+                t_s = d.predict(generated_images[i][np.newaxis, ...])[0][0]
+                temp_g.append(t_s)
+            hn_ind = np.argsort(temp_g)[:hn_num]
+
+            hard_g_x = image_blur_batch[hn_ind]
+            hard_g_y = image_full_batch[hn_ind]
+            g_blur = np.concatenate((image_blur_batch, hard_g_x), axis=0)
+            g_full = np.concatenate((image_full_batch, hard_g_y), axis=0)
+            d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
+            d_on_g_losses.append(d_on_g_loss)
             #
             # d.trainable = True
                 ##############################
-            d.trainable = False
+            # d.trainable = False
 
-            d_on_g_loss = d_on_g.train_on_batch(image_blur_batch, [image_full_batch, output_true_batch])
-            d_on_g_losses.append(d_on_g_loss)
+            # d_on_g_loss = d_on_g.train_on_batch(image_blur_batch, [image_full_batch, output_true_batch])
+            # d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
+
+            # d_on_g_losses.append(d_on_g_loss)
 
             d.trainable = True
 
@@ -146,10 +149,10 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
 @click.command()
 # @click.option('--n_images', default=-1, help='Number of images to load for training')
 @click.option('--n_images', default=10, help='Number of images to load for training')
-@click.option('--batch_size', default=4, help='Size of batch')
+@click.option('--batch_size', default=2, help='Size of batch')
 # @click.option('--log_dir', required=True, help='Path to the log_dir for Tensorboard')
 @click.option('--log_dir', default='./log', help='Path to the log_dir for Tensorboard')
-@click.option('--epoch_num', default=4, help='Number of epochs for training')
+@click.option('--epoch_num', default=10, help='Number of epochs for training')
 @click.option('--critic_updates', default=5, help='Number of discriminator training')
 def train_command(n_images, batch_size, log_dir, epoch_num, critic_updates):
     return train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_updates)

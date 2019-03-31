@@ -90,7 +90,7 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
 @click.option('--batch_size', default=2, help='Size of batch')
 # @click.option('--log_dir', required=True, help='Path to the log_dir for Tensorboard')
 @click.option('--log_dir', default='./log', help='Path to the log_dir for Tensorboard')
-@click.option('--epoch_num', default=4, help='Number of epochs for training')
+@click.option('--epoch_num', default=10, help='Number of epochs for training')
 @click.option('--critic_updates', default=5, help='Number of discriminator training')
 def train_command(n_images, batch_size, log_dir, epoch_num, critic_updates):
     return train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_updates)
