@@ -18,8 +18,8 @@ def test(batch_size):
     g = generator_model()
     # g.load_weights('./weights/331/generator_3_1538.h5')
     # g.load_weights('./weights_hard/331/generator_3_1746.h5')
-    # g.load_weights('../generator3-22.h5')
-    g.load_weights('../deblur-20.h5')
+    g.load_weights('../generator4-40.h5')
+    # g.load_weights('../deblur-40.h5')
 
     # im1 = tf.decode_png('../images/test/A/GOPR0384_11_00_000001.png')
     # im2 = tf.decode_png('../images/test/B/GOPR0384_11_00_000001.png')
@@ -27,6 +27,8 @@ def test(batch_size):
     # print(ssim)
     psnr =0
     ssim =0
+    # with tf.Session() as sess:
+    #     sess.run(tf.initialize_all_variables())
     for index in tqdm.tqdm(range(int(300 / batch_size))):
         batch_test = x_test[index * batch_size:(index + 1) * batch_size]
         batch_label = y_test[index * batch_size:(index + 1) * batch_size]
@@ -37,36 +39,52 @@ def test(batch_size):
         batch_test = deprocess_image(batch_test)
         batch_label = deprocess_image(batch_label)
 
-        for i in range(generated_images.shape[0]):
-            y = batch_label[i, :, :, :]
-            x = batch_test[i, :, :, :]
-            img = generated[i, :, :, :]
-            # with tf.Session() as sess:
-            #     sess.run(tf.initialize_all_variables())
-            #     yy = tf.convert_to_tensor(y, dtype=tf.float32)
-            #     imgimg = tf.convert_to_tensor(img, dtype=tf.float32)
-            #     ssim = tf.image.ssim(yy, imgimg, max_val=255)
-            #     psnr = tf.image.psnr(yy,imgimg,max_val=255)
-            #     sess.run(psnr)
-            # with tf.Session() as sess:
-            #     sess.run(tf.initialize_all_variables())  # execute init_op
-            #     # print the random values that we sample
-            #     psnr += sess.run(psnr)
-            #     ssim += sess.run(ssim)
+        # for i in range(generated_images.shape[0]):
+        #     y = batch_label[i, :, :, :]
+        #     x = batch_test[i, :, :, :]
+        #     img = generated[i, :, :, :]
+        #     with tf.Session() as sess:
+        #         sess.run(tf.initialize_all_variables())
+         #        yy = tf.convert_to_tensor(y, dtype=tf.float32)
+         #        imgimg = tf.convert_to_tensor(img, dtype=tf.float32)
+         #        # ssim = tf.image.ssim(yy, imgimg, max_val=255)
+         #        # psnr = tf.image.psnr(yy,imgimg,max_val=255)
+         #        # sess.run(psnr)
+         #        ssim += sess.run(tf.image.ssim(yy, imgimg, max_val=255))
+         #        pp += sess.run(tf.image.psnr(yy,imgimg,max_val=255))
+        #         # print(sim)
 
+        # for i in range(generated_images.shape[0]):
+         #    y = batch_label[i, :, :, :]
+         #    x = batch_test[i, :, :, :]
+         #    img = generated[i, :, :, :]
+        with tf.Session() as sess:
+            sess.run(tf.initialize_all_variables())
+            yy = tf.convert_to_tensor(batch_label, dtype=tf.float32)
+            imgimg = tf.convert_to_tensor(generated, dtype=tf.float32)
+            # ssim = tf.image.ssim(yy, imgimg, max_val=255)
+            # psnr = tf.image.psnr(yy,imgimg,max_val=255)
+            # sess.run(psnr)
+            ss = sess.run(tf.image.ssim(yy, imgimg, max_val=255))
+            ssim +=np.mean(ss)
+            pp = sess.run(tf.image.psnr(yy, imgimg, max_val=255))
+            psnr += np.mean(pp)
+            # print(sim
             # print(ssim)
             # print(psnr)
             # yy= np.transpose(y[np.newaxis,...],(0,3,1,2))
             # imgimg = np.transpose(img[np.newaxis,...],(0,3,1,2))
-            psnr += PSNR(y,img)
+            # psnr += PSNR(y,img)
             # print(psnr)
             # ssim += SSIM(yy,imgimg)
 
-            output = np.concatenate((y, x, img), axis=1)
-            im = Image.fromarray(output.astype(np.uint8))
-            im.save('results{}.png'.format(i))
-
-    print(psnr/300)
+            # output = np.concatenate((y, x, img), axis=1)
+            # im = Image.fromarray(output.astype(np.uint8))
+            # im.save('results{}.png'.format(i))
+    num = int(300 / batch_size)
+    print(psnr/num)
+    # print(pp/300)
+    print(ssim/num)
     # print(ssim/generated_images.shape[0])
 
 

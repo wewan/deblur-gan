@@ -62,6 +62,28 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
 
         d_losses = []
         d_on_g_losses = []
+
+##############
+        init_blur = x_train[-batch_size:]
+        init_lab = y_train[-batch_size:]
+
+        init_gen = g.predict(x=init_blur, batch_size=hn_num)
+        d.trainable = False
+        temp_init = []
+        for i in range(init_gen.shape[0]):
+            t_s = d.predict(init_gen[i][np.newaxis,...])[0][0]
+            temp_init.append(t_s)
+        init_ind = np.argsort(temp_init)[::-1][:hn_num]
+        init_ind2 = np.argsort(temp_init)[:hn_num]
+
+
+        hard_neg = init_gen[init_ind]
+        hard_neg_y = init_lab[init_ind]
+        hard_g_x = init_gen[init_ind2]
+        hard_g_y = init_lab[init_ind2]
+
+##########
+
         for index in range(int(x_train.shape[0] / batch_size)):
             batch_indexes = permutated_indexes[index*batch_size:(index+1)*batch_size]
             image_blur_batch = x_train[batch_indexes]
@@ -70,32 +92,8 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
             generated_images = g.predict(x=image_blur_batch, batch_size=batch_size)
 
 
-            ##############
-            # d.trainable = False
-            # temp_hn = []
-            # for i in range(generated_images.shape[0]):
-            #     t_s = d.predict(generated_images[i])
-            #     temp_hn.append(t_s)
-            # hn_ind = np.argsort(temp_hn)[::-1][:hn_num]
-            #
-            # hard_neg  = generated_images[hn_ind]
-            # hard_neg_y= image_full_batch[hn_ind]
-            # hard_pos = []
-            # hard_pos = []
-            #
-            # neg_train= np.concatenate((generated_images,hard_neg),axis=0)
-            # pos_train= np.concatenate((image_full_batch,hard_neg_y),axis=0)
 
             for _ in range(critic_updates):
-                d.trainable = False
-                temp_hn = []
-                for i in range(generated_images.shape[0]):
-                    t_s = d.predict(generated_images[i][np.newaxis,...])[0][0]
-                    temp_hn.append(t_s)
-                hn_ind = np.argsort(temp_hn)[::-1][:hn_num]
-
-                hard_neg = generated_images[hn_ind]
-                hard_neg_y = image_full_batch[hn_ind]
 
                 d.trainable = True
                 neg_train = np.concatenate((generated_images, hard_neg), axis=0)
@@ -105,35 +103,35 @@ def train_multiple_outputs(n_images, batch_size, log_dir, epoch_num, critic_upda
                 d_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
                 d_losses.append(d_loss)
 
-            # for _ in range(critic_updates):
-            #     d_loss_real = d.train_on_batch(image_full_batch, output_true_batch)
-            #     d_loss_fake = d.train_on_batch(generated_images, output_false_batch)
-            #     d_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
-            #     d_losses.append(d_loss)
+            d.trainable = False
+            temp_hn = []
+            for i in range(neg_train.shape[0]):
+                t_s = d.predict(neg_train[i][np.newaxis, ...])[0][0]
+                temp_hn.append(t_s)
+            hn_ind = np.argsort(temp_hn)[::-1][:hn_num]
+
+            hard_neg = neg_train[hn_ind]
+            hard_neg_y = pos_train[hn_ind]
+
+
 
             # #################################
             d.trainable = False
-            temp_g = []
-            for i in range(generated_images.shape[0]):
-                t_s = d.predict(generated_images[i][np.newaxis, ...])[0][0]
-                temp_g.append(t_s)
-            hn_ind = np.argsort(temp_g)[:hn_num]
 
-            hard_g_x = image_blur_batch[hn_ind]
-            hard_g_y = image_full_batch[hn_ind]
             g_blur = np.concatenate((image_blur_batch, hard_g_x), axis=0)
             g_full = np.concatenate((image_full_batch, hard_g_y), axis=0)
             d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
             d_on_g_losses.append(d_on_g_loss)
+
+            temp_g = []
+            for i in range(g_blur.shape[0]):
+                t_s = d.predict(g_blur[i][np.newaxis, ...])[0][0]
+                temp_g.append(t_s)
+            g_ind = np.argsort(temp_g)[:hn_num]
+
+            hard_g_x = g_blur[g_ind]
+            hard_g_y = g_full[g_ind]
             #
-            # d.trainable = True
-                ##############################
-            # d.trainable = False
-
-            # d_on_g_loss = d_on_g.train_on_batch(image_blur_batch, [image_full_batch, output_true_batch])
-            # d_on_g_loss = d_on_g.train_on_batch(g_blur, [g_full, hard_true_batch])
-
-            # d_on_g_losses.append(d_on_g_loss)
 
             d.trainable = True
 

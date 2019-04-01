@@ -13,7 +13,7 @@ def deblur(image_path):
     }
     x_test = data['A']
     g = generator_model()
-    g.load_weights('generator.h5')
+    g.load_weights('../generator.h5')
     generated_images = g.predict(x=x_test)
     generated = np.array([deprocess_image(img) for img in generated_images])
     x_test = deprocess_image(x_test)
@@ -23,11 +23,11 @@ def deblur(image_path):
         img = generated[i, :, :, :]
         output = np.concatenate((x, img), axis=1)
         im = Image.fromarray(output.astype(np.uint8))
-        im.save('deblur'+image_path)
+        im.save('deblur/'+image_path)
 
 
 @click.command()
-@click.option('--image_path', help='Image to deblur')
+@click.option('--image_path', default = 'try/1.jpg',help='Image to deblur')
 def deblur_command(image_path):
     return deblur(image_path)
 
